@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Aviator Cosmic Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg-color: radial-gradient(circle at center, #0a0a2a 0%, #000 100%);
+      --text-color: #fff;
+      --wallet-color: #00ffcc;
+      --button-primary-bg: #007bff;
+      --button-primary-text: #fff;
+      --button-secondary-bg: #6c757d;
+      --button-secondary-text: #fff;
+      --input-bg: #343a40;
+      --input-text: #fff;
+      --select-bg: #343a40;
+      --select-text: #fff;
+      --topbar-bg: rgba(0,0,0,0.7);
+      --control-bg: rgba(0,0,0,0.5);
+      --canvas-bg: #111;
+      --shadow-color: #000;
+      --accent-color: #00ffff;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      color: var(--text-color);
+      background: var(--bg-color);
+      overflow: hidden;
+      transition: background 0.5s, color 0.5s;
+      -webkit-user-select: none; /* Safari */
+      -moz-user-select: none; /* Firefox */
+      -ms-user-select: none; /* IE10+/Edge */
+      user-select: none; /* Standard */
+    }
+
+    .topbar {
+      background: var(--topbar-bg);
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px var(--shadow-color);
+    }
+
+    .wallet {
+      font-size: 1.2em;
+      color: var(--wallet-color);
+      font-weight: bold;
+    }
+
+    .controls {
+      text-align: center;
+      padding: 20px;
+      background: var(--control-bg);
+      margin: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px var(--shadow-color);
+    }
+
+    .controls input, .controls select, .controls button {
+      padding: 10px 12px;
+      margin: 8px;
+      border-radius: 6px;
+      font-size: 1em;
+      border: 1px solid #555;
+      transition: border-color 0.3s;
+    }
+
+    .controls input {
+      background-color: var(--input-bg);
+      color: var(--input-text);
+    }
+
+    .controls select {
+      background-color: var(--select-bg);
+      color: var(--select-text);
+    }
+
+    .controls input:focus, .controls select:focus {
+      outline: none;
+      border-color: var(--accent-color);
+    }
+
+    #multiplier {
+      font-size: 5em;
+      text-align: center;
+      margin: 20px 0;
+      text-shadow: 3px 3px 8px var(--shadow-color);
+      color: var(--accent-color);
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.3s, color 0.3s;
+      font-weight: bold;
+    }
+
+    #cashoutBtn {
+      background: #28a745;
+      color: white;
+      padding: 12px 20px;
+    }
+
+    #cashoutBtn:hover {
+      background: #218838;
+    }
+
+    #cashoutBtn:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+
+    #restartBtn {
+      background: #ffc107;
+      color: #212529;
+      padding: 10px 18px;
+      display: none;
+    }
+
+    #restartBtn:hover {
+      background: #e0a800;
+    }
+
+    #result, #historyPanel {
+      text-align: center;
+      font-size: 1.1em;
+      margin-top: 15px;
+      color: #eee;
+      text-shadow: 1px 1px 2px var(--shadow-color);
+    }
+
+    #gameCanvas {
+      background: var(--canvas-bg);
+      display: block;
+      margin: 20px auto;
+      border-radius: 15px;
+      box-shadow: 0 0 40px var(--accent-color), 0 0 60px #00f;
+    }
+
+    #themeToggle, #soundToggle, #rechargeBtn {
+      background: #444;
+      color: #fff;
+      padding: 8px 15px;
+    }
+
+    #themeToggle:hover, #soundToggle:hover, #rechargeBtn:hover {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div><strong>Aviator Cosmic Pro</strong></div>
+    <div class="wallet">Wallet: ₹<span id="walletAmount">5000</span></div>
+  </div>
+
+  <div class="controls">
+    <input type="number" id="betAmount" placeholder="Enter Bet ₹" min="10" max="10000" value="100">
+    <input type="number" id="autoCashout" placeholder="Auto Cashout x" step="0.1" min="1.1">
+    <select id="gameMode">
+      <option value="normal">Normal</option>
+      <option value="insane">Insane</option>
+    </select>
+    <button id="themeToggle" onclick="toggleTheme()">Toggle Theme</button>
+    <button id="soundToggle" onclick="toggleSound()">Sound On/Off</button>
+    <button id="rechargeBtn" onclick="rechargeWallet()">Recharge ₹1000</button>
+  </div>
+<div id="multiplier">1.00x</div>
+  <button id="cashoutBtn" onclick="cashOut()">Cash Out</button>
+  <button id="restartBtn" onclick="restartGame()">Restart</button>
+  <div id="result"></div>
+  <div id="historyPanel">Past Crashes: <span id="history"></span></div>
+  <canvas id="gameCanvas" width="600" height="350"></canvas>
+
+  <audio id="planeSound" src="plane.mp3"></audio>
+  <audio id="crashSound" src="boom.mp3"></audio>
+  <audio id="cashoutSound" src="cashout.mp3"></audio>
+  <audio id="ambientSound" src="ambient.mp3" autoplay loop></audio>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const multiplierEl = document.getElementById("multiplier");
+    const resultEl = document.getElementById("result");
+    const walletEl = document.getElementById("walletAmount");
+    const cashoutBtn = document.getElementById("cashoutBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const historyEl = document.getElementById("history");
+
+    const planeSound = document.getElementById("planeSound");
+    const crashSound = document.getElementById("crashSound");
+    const cashoutSound = document.getElementById("cashoutSound");
+    const ambientSound = document.getElementById("ambientSound");
+
+    const betInput = document.getElementById("betAmount");
+    const autoCashoutInput = document.getElementById("autoCashout");
+    const gameModeSelect = document.getElementById("gameMode");
+
+    let multiplier = 1.00;
+    let growthRate = 0.002;
+    let acceleration = 0.0002;
+    let cashedOut = false;
+    let crashed = false;
+    let crashPoint = 0;
+    let gameRunning = false;
+    let animationFrame;
+    let wallet = 5000;
+    let winnings = 0;
+    let autoCashoutValue = null;
+
+    let planeX = -50;
+    let planeY = canvas.height / 2;
+    let waveAngle = 0;
+
+    const stars = Array.from({ length: 150 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 2,
+      speed: 0.4 + Math.random()
+    }));
+
+    let history = [];
+
+    function toggleTheme() {
+      const body = document.body;
+      const isDark = body.style.background.includes("#0a0a2a");
+      body.style.background = isDark ? "#fff" : "radial-gradient(circle at center, #0a0a2a 0%, #000 100%)";
+      body.style.color = isDark ? "#000" : "#fff";
+      const root = document.documentElement;
+      root.style.setProperty('--text-color', isDark ? '#000' : '#fff');
+      root.style.setProperty('--bg-color', isDark ? '#fff' : 'radial-gradient(circle at center, #0a0a2a 0%, #000 100%)');
+    }
+
+    function toggleSound() {
+      ambientSound.muted = !ambientSound.muted;
+      planeSound.muted = !planeSound.muted;
+      crashSound.muted = !crashSound.muted;
+      cashoutSound.muted = !cashoutSound.muted;
+    }
+
+    function rechargeWallet() {
+      wallet += 1000;
+      updateWallet();
+      alert("Wallet recharged ₹1000!");
+    }
+
+    function generateCrashPoint() {
+      return gameModeSelect.value === "insane"
+        ? (Math.random() * 30 + 0.5).toFixed(2)
+        : (Math.random() * 5 + 1.5).toFixed(2);
+    }
+
+    function updateWallet() {
+      walletEl.innerText = wallet;
+    }
+
+    function drawStars() {
+      ctx.fillStyle = "#fff";
+      stars.forEach(star => {
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, 2 * Math.PI);
+        ctx.fill();
+        star.x -= star.speed;
+        if (star.x < 0) {
+          star.x = canvas.width;
+          star.y = Math.random() * canvas.height;
+        }
+      });
+    }
+
+    function drawPlane(x, y) {
+      ctx.fillStyle = "#ffeb3b";
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - 30, y + 15);
+      ctx.lineTo(x - 30, y - 15);
+      ctx.closePath();
+      ctx.fill();
+
+      // Add engine trail
+      ctx.fillStyle = "rgba(255, 255, 0, 0.6)";
+      ctx.beginPath();
+      ctx.ellipse(x - 35, y, 5, 10, Math.PI / 2, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+
+    function updateCanvas() {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawStars();
+      drawPlane(planeX, planeY);
+    }
+
+    function updateGame() {
+      if (!gameRunning) return;
+
+      growthRate += acceleration;
+      multiplier += growthRate;
+      multiplier = parseFloat(multiplier.toFixed(2));
+      multiplierEl.innerText = multiplier + "x";
+
+      planeX += 2 + growthRate * 10;
+      waveAngle += 0.1;
+      planeY = canvas.height / 2 + Math.sin(waveAngle) * 20;
+
+      updateCanvas();
+
+      if (!cashedOut && autoCashoutValue && multiplier >= autoCashoutValue) {
+        cashOut(true);
+      }
+
+      if (multiplier >= crashPoint) {
+        crash();
+        return;
+      }
+
+      animationFrame = requestAnimationFrame(updateGame);
+    }
+
+    function startGame() {
+      let bet = parseInt(betInput.value) || 100;
+      if (wallet < bet) {
+        alert("Not enough balance!");
+        return;
+      }
+
+      multiplier = 1.00;
+      growthRate = 0.002;
+      acceleration = 0.0002;
+      crashed = false;
+      cashedOut = false;
+      winnings = 0;
+      planeX = -50;
+      planeY = canvas.height / 2;
+      waveAngle = 0;
+      gameRunning = true;
+
+      autoCashoutValue = parseFloat(autoCashoutInput.value) || null;
+      crashPoint = parseFloat(generateCrashPoint());
+      multiplierEl.innerText = "1.00x";
+      resultEl.innerText = "";
+      cashoutBtn.disabled = false;
+      restartBtn.style.display = "none";
+
+      wallet -= bet;
+      updateWallet();
+
+      planeSound.currentTime = 0;
+      planeSound.loop = true;
+      planeSound.play();
+
+      animationFrame = requestAnimationFrame(updateGame);
+    }
+
+    function crash() {
+      crashed = true;
+      gameRunning = false;
+      cancelAnimationFrame(animationFrame);
+      planeSound.pause();
+      crashSound.play();
+      resultEl.innerText = `Crashed at ${multiplier.toFixed(2)}x! You lost ₹${betInput.value}`;
+      cashoutBtn.disabled = true;
+      restartBtn.style.display = "block";
+      history.unshift(multiplier.toFixed(2));
+      if (history.length > 5) history.pop();
+      historyEl.innerText = history.join(" | ");
+    }
+
+    function cashOut(auto = false) {
+      if (!gameRunning || cashedOut) return;
+      cashedOut = true;
+      gameRunning = false;
+      cancelAnimationFrame(animationFrame);
+      planeSound.pause();
+      cashoutSound.play();
+
+      const win = Math.floor(parseInt(betInput.value) * multiplier);
+      wallet += win;
+      updateWallet();
+      resultEl.innerText = `${auto ? "Auto-" : ""}Cashed out at ${multiplier.toFixed(2)}x, Won ₹${win}`;
+      cashoutBtn.disabled = true;
+      restartBtn.style.display = "block";
+      history.unshift(multiplier.toFixed(2));
+      if (history.length > 5) history.pop();
+      historyEl.innerText = history.join(" | ");
+    }
+
+    function restartGame() {
+      startGame();
+    }
+
+    window.onload = () => {
+      ambientSound.volume = 0.3;
+      startGame();
+    };
+  </script>
+</body>
+</html>
