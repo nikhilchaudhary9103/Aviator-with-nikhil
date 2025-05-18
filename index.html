@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Aviator Cosmic</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      background: radial-gradient(circle at center, #0a0a2a 0%, #000 100%);
+      overflow: hidden;
+    }
+
+    .topbar {
+      background: rgba(0,0,0,0.6);
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 0 10px #000;
+    }
+
+    .wallet {
+      font-size: 1.2em;
+      color: #00ffcc;
+    }
+
+    h1 {
+      margin: 20px 0 10px;
+      font-size: 2em;
+      text-align: center;
+    }
+
+    #multiplier {
+      font-size: 4em;
+      text-align: center;
+      margin: 10px;
+      text-shadow: 2px 2px 5px black;
+    }
+
+    #cashoutBtn, #restartBtn {
+      display: block;
+      margin: 10px auto;
+      padding: 12px 30px;
+      font-size: 1.1em;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      transition: 0.3s;
+    }
+
+    #cashoutBtn {
+      background: #28a745;
+      color: white;
+    }
+
+    #cashoutBtn:disabled {
+      background: #555;
+    }
+
+    #restartBtn {
+      background: #ffc107;
+      color: black;
+      display: none;
+    }
+
+    #result {
+      text-align: center;
+      font-size: 1.5em;
+      margin-top: 10px;
+      min-height: 1.5em;
+    }
+
+    #gameCanvas {
+      background: #000;
+      display: block;
+      margin: 20px auto;
+      border-radius: 12px;
+      box-shadow: 0 0 30px #0ff, 0 0 50px #00f;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div style="font-weight: bold;">Aviator Cosmic</div>
+    <div class="wallet">Wallet: ₹<span id="walletAmount">5000</span></div>
+  </div>
+
+  <h1>Aviator Cash Out</h1>
+  <div id="multiplier">1.00x</div>
+  <button id="cashoutBtn" onclick="cashOut()">Cash Out</button>
+  <button id="restartBtn" onclick="restartGame()">Try Again</button>
+  <div id="result"></div>
+  <canvas id="gameCanvas" width="500" height="300"></canvas>
+
+  <audio id="planeSound" src="plane.mp3"></audio>
+  <audio id="crashSound" src="boom.mp3"></audio>
+  <audio id="cashoutSound" src="cashout.mp3"></audio>
+  <audio id="ambientSound" src="ambient.mp3" loop autoplay></audio>
+
+  <script>
+    const multiplierEl = document.getElementById("multiplier");
+    const resultEl = document.getElementById("result");
+    const cashoutBtn = document.getElementById("cashoutBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const walletEl = document.getElementById("walletAmount");
+
+    const planeSound = document.getElementById("planeSound");
+    const crashSound = document.getElementById("crashSound");
+    const cashoutSound = document.getElementById("cashoutSound");
+    const ambientSound = document.getElementById("ambientSound");
+
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let multiplier = 1.00;
+    let growthRate = 0.002;
+    let acceleration = 0.0002;
+    let cashedOut = false;
+    let crashed = false;
+    let crashPoint = 0;
+    let gameRunning = false;
+    let animationFrame;
+    let planeX = -50;
+    let planeY = canvas.height / 2;
+    let wallet = 5000;
+    let winnings = 0;
+
+    const stars = [];
+    for (let i = 0; i < 100; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2,
+        speed: 0.3 + Math.random() * 0.7
+      });
+    }
+
+    function generateCrashPoint() {
+      return (Math.random() * 5 + 2).toFixed(2);
+    }
+
+    function drawPlane(x, y) {
+      ctx.fillStyle = "#ffeb3b";
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - 30, y + 15);
+      ctx.lineTo(x - 30, y - 15);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawStars() {
+      ctx.fillStyle = "#fff";
+      stars.forEach(star => {
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, 2 * Math.PI);
+        ctx.fill();
+        star.x -= star.speed;
+        if (star.x < 0) {
+          star.x = canvas.width;
+          star.y = Math.random() * canvas.height;
+        }
+      });
+    }
+
+    function updateCanvas() {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawStars();
+      drawPlane(planeX, planeY);
+    }
+
+    function updateGame() {
+      if (!gameRunning) return;
+
+      growthRate += acceleration;
+      multiplier += growthRate;
+      multiplier = parseFloat(multiplier.toFixed(2));
+      multiplierEl.innerText = multiplier.toFixed(2) + "x";
+
+      planeX += 2 + growthRate * 10;
+      if (planeX > canvas.width + 50) planeX = -50;
+
+      updateCanvas();
+
+      if (multiplier >= crashPoint) {
+        crash();
+        return;
+      }
+
+      animationFrame = requestAnimationFrame(updateGame);
+    }
+
+    function startGame() {
+      multiplier = 1.00;
+      growthRate = 0.002;
+      crashed = false;
+      cashedOut = false;
+      winnings = 0;
+      gameRunning = true;
+      crashPoint = parseFloat(generateCrashPoint());
+      planeX = -50;
+      multiplierEl.innerText = "1.00x";
+      resultEl.innerText = "";
+      cashoutBtn.disabled = false;
+      restartBtn.style.display = "none";
+
+      planeSound.currentTime = 0;
+      planeSound.loop = true;
+      planeSound.play();
+
+      animationFrame = requestAnimationFrame(updateGame);
+    }
+
+    function crash() {
+      crashed = true;
+      gameRunning = false;
+      cancelAnimationFrame(animationFrame);
+      planeSound.pause();
+      crashSound.play();
+      resultEl.innerText = "Crashed at " + multiplier.toFixed(2) + "x! You lost ₹100";
+      wallet -= 100;
+      updateWallet();
+      cashoutBtn.disabled = true;
+      restartBtn.style.display = "block";
+    }
+
+    function cashOut() {
+      if (gameRunning && !cashedOut) {
+        cashedOut = true;
+        gameRunning = false;
+        cancelAnimationFrame(animationFrame);
+        planeSound.pause();
+        cashoutSound.play();
+        winnings = Math.floor(100 * multiplier);
+        wallet += winnings - 100;
+        resultEl.innerText = "You cashed out at " + multiplier.toFixed(2) + "x and won ₹" + winnings;
+        updateWallet();
+        cashoutBtn.disabled = true;
+        restartBtn.style.display = "block";
+      }
+    }
+
+    function restartGame() {
+      startGame();
+    }
+
+    function updateWallet() {
+      walletEl.innerText = wallet;
+    }
+
+    window.onload = () => {
+      ambientSound.volume = 0.2;
+      startGame();
+    };
+  </script>
+</body>
+  </html>
