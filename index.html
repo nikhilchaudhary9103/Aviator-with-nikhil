@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Aviator Cosmic Pro - Upgraded</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+    :root {
+      --bg-color-dark: #1a1a2e; /* Darker background */
+      --bg-color-light: #0f0f1e; /* Lighter shade for depth */
+      --text-color: #e0e0e0;
+      --primary-accent: #00ffcc; /* Teal/Cyan for highlights */
+      --secondary-accent: #ff3366; /* Reddish pink for contrast/crash */
+      --green-bet: #28a745; /* Green for bet/cashout */
+      --yellow-restart: #ffc107;
+      --input-bg: #2c2c44;
+      --border-color: #444466;
+      --font-family: 'Roboto', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-family);
+      color: var(--text-color);
+      background: var(--bg-color-dark);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .topbar {
+      background: rgba(0,0,0,0.5);
+      padding: 12px 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      width: 100%;
+      box-sizing: border-box;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .topbar strong {
+        font-size: 1.3em;
+        color: var(--primary-accent);
+    }
+
+    .wallet {
+      font-size: 1.1em;
+      color: var(--primary-accent);
+      font-weight: 500;
+    }
+
+    .game-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        max-width: 600px; /* Max width for the game area */
+        margin-top: 15px;
+    }
+
+    #gameCanvas {
+      background: linear-gradient(to bottom, var(--bg-color-light), var(--bg-color-dark));
+      display: block;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0, 255, 204, 0.1), 0 0 30px rgba(0, 100, 255, 0.1);
+      border: 1px solid var(--border-color);
+      margin-bottom: 15px; /* Space below canvas */
+    }
+
+    #multiplier {
+      font-size: 5em; /* Larger multiplier */
+      font-weight: 700;
+      text-align: center;
+      margin: 5px 0 15px 0; /* Adjusted margin */
+      transition: color 0.3s ease-in-out, text-shadow 0.3s ease-in-out;
+      position: absolute; /* Position over canvas */
+      top: 40%; /* Adjust as needed */
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      color: #fff; /* Default white for visibility */
+    }
+
+    .glowing-normal {
+      color: #fff;
+      text-shadow: 0 0 8px #fff, 0 0 12px var(--primary-accent), 0 0 20px var(--primary-accent), 0 0 30px var(--primary-accent);
+    }
+
+    .glowing-crash {
+      color: var(--secondary-accent);
+      text-shadow: 0 0 8px var(--secondary-accent), 0 0 12px var(--secondary-accent), 0 0 20px #ff0000, 0 0 30px #ff0000;
+    }
+
+
+    .controls-panel {
+        background: var(--bg-color-light);
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        width: 100%;
+        max-width: 550px;
+        box-sizing: border-box;
+        border: 1px solid var(--border-color);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .controls input, .controls select {
+      padding: 12px 15px;
+      border-radius: 6px;
+      font-size: 1em;
+      background: var(--input-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      box-sizing: border-box;
+    }
+    .controls input:focus, .controls select:focus {
+        outline: none;
+        border-color: var(--primary-accent);
+        box-shadow: 0 0 5px var(--primary-accent);
+    }
+
+    .action-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 10px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.3s, transform 0.1s;
+      padding: 12px 20px;
+      font-size: 1.1em;
+      font-weight: 500;
+      border-radius: 6px;
+      min-width: 120px;
+    }
+    button:active {
+        transform: scale(0.98);
+    }
+
+    #cashoutBtn {
+      background: var(--green-bet);
+      color: white;
+    }
+    #cashoutBtn:hover {
+      background: #218838;
+    }
+    #cashoutBtn:disabled {
+      background: #555;
+      color: #999;
+      cursor: not-allowed;
+    }
+
+    #restartBtn {
+      background: var(--yellow-restart);
+      color: black;
+      display: none; /* Hidden by default */
+    }
+    #restartBtn:hover {
+      background: #e0a800;
+    }
+
+    .utility-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 15px; /* Space below utility buttons */
+    }
+    .utility-buttons button {
+        background: var(--input-bg);
+        color: var(--text-color);
+        font-size: 0.9em;
+        padding: 8px 15px;
+        min-width: auto;
+    }
+    .utility-buttons button:hover {
+        background: var(--border-color);
+    }
+
+
+    #result, #historyPanel {
+      text-align: center;
+      font-size: 1.1em;
+      margin-top: 10px;
+      color: var(--text-color);
+    }
+    #historyPanel {
+        font-size: 0.9em;
+        color: #aaa;
+    }
+    #history {
+        color: var(--primary-accent);
+    }
+
+    /* Adjust canvas wrapper for multiplier positioning */
+    .canvas-wrapper {
+        position: relative; /* Needed for absolute positioning of multiplier */
+        width: 500px; /* Match canvas width */
+        height: 300px; /* Match canvas height */
+        margin: 0 auto 20px auto; /* Center and add margin */
+
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div><strong>Aviator Cosmic Pro</strong></div>
+    <div class="wallet">Wallet: ₹<span id="walletAmount">5000</span></div>
+  </div>
+
+  <div class="game-container">
+    <div class="canvas-wrapper">
+      <canvas id="gameCanvas" width="500" height="300"></canvas>
+      <div id="multiplier" class="glowing-normal">1.00x</div>
+    </div>
+
+    <div class="controls-panel">
+        <div class="utility-buttons">
+            <button id="themeToggle" onclick="toggleTheme()">Theme</button>
+            <button id="soundToggle" onclick="toggleSound()">Sound</button>
+            <button id="rechargeBtn" onclick="rechargeWallet()">Recharge ₹1000</button>
+        </div>
+        <div class="controls">
+            <input type="number" id="betAmount" placeholder="Bet ₹" min="10" max="10000" value="100">
+            <input type="number" id="autoCashout" placeholder="Auto Cashout x" step="0.1" min="1.1">
+            <select id="gameMode">
+                <option value="normal">Normal</option>
+                <option value="insane">Insane</option>
+            </select>
+        </div>
+        <div class="action-buttons">
+            <button id="cashoutBtn" onclick="cashOutOrBet()">BET</button> <button id="restartBtn" onclick="restartGame()">Restart</button>
+        </div>
+        <div id="result">Place your bet and watch the multiplier fly!</div>
+        <div id="historyPanel">Past Crashes: <span id="history"></span></div>
+    </div>
+  </div>
+
+
+  <audio id="planeSound" src="plane.mp3"></audio>
+  <audio id="crashSound" src="boom.mp3"></audio>
+  <audio id="cashoutSound" src="cashout.mp3"></audio>
+  <audio id="ambientSound" src="ambient.mp3" loop></audio> <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const multiplierEl = document.getElementById("multiplier");
+    const resultEl = document.getElementById("result");
+    const walletEl = document.getElementById("walletAmount");
+    const cashoutBtn = document.getElementById("cashoutBtn"); // Renamed from placeBetBtn to cashoutBtn for consistency
+    const restartBtn = document.getElementById("restartBtn");
+    const historyEl = document.getElementById("history");
+
+    const planeSound = document.getElementById("planeSound");
+    const crashSound = document.getElementById("crashSound");
+    const cashoutSound = document.getElementById("cashoutSound");
+    const ambientSound = document.getElementById("ambientSound");
+
+    const betInput = document.getElementById("betAmount");
+    const autoCashoutInput = document.getElementById("autoCashout");
+    const gameModeSelect = document.getElementById("gameMode");
+
+    let currentMultiplier = 1.00; // Renamed from 'multiplier' to avoid conflict with element
+    let growthRate = 0.002; // Initial growth rate
+    let acceleration = 0.00015; // Slower acceleration for more suspense
+    let cashedOut = false;
+    let crashed = false;
+    let crashPoint = 0;
+    let gameRunning = false;
+    let animationFrame;
+    let wallet = 5000;
+    let currentBet = 0;
+    let autoCashoutValue = null;
+
+    // Plane and graph properties
+    let plane = { x: -60, y: canvas.height - 50, width: 50, height: 20 }; // Adjusted plane start and size
+    let pathPoints = []; // To store points for drawing the multiplier path
+    const maxPathPoints = 150; // Limit points for performance
+    let time = 0; // Time variable for horizontal progression of graph
+
+    // Radiating lines background properties
+    const radiatingLines = {
+        centerX: canvas.width / 4, // Start lines from left-center
+        centerY: canvas.height,    // Bottom of canvas
+        maxRadius: Math.sqrt(canvas.width**2 + canvas.height**2),
+        numLines: 30,
+        angleStep: (Math.PI * 0.8) / 30, // Radiate upwards in an arc
+        lineWidth: 1,
+        lineColor: "rgba(255, 255, 255, 0.03)" // Very subtle lines
+    };
+
+
+    let history = [];
+    let soundEnabled = true; // Default sound state
+
+    // --- UTILITY FUNCTIONS ---
+    function toggleTheme() {
+      // Basic theme toggle, can be expanded
+      if (document.body.style.background.includes("1a1a2e")) { // Assuming dark is default
+        document.body.style.setProperty('--bg-color-dark', '#f0f0f0');
+        document.body.style.setProperty('--bg-color-light', '#e0e0e0');
+        document.body.style.setProperty('--text-color', '#333');
+        document.body.style.setProperty('--input-bg', '#fff');
+        document.body.style.setProperty('--border-color', '#ccc');
+        multiplierEl.classList.remove('glowing-normal', 'glowing-crash'); // Adjust glow for light theme if needed
+        // Potentially change glow colors for light theme
+      } else {
+        document.body.style.setProperty('--bg-color-dark', '#1a1a2e');
+        document.body.style.setProperty('--bg-color-light', '#0f0f1e');
+        document.body.style.setProperty('--text-color', '#e0e0e0');
+        document.body.style.setProperty('--input-bg', '#2c2c44');
+        document.body.style.setProperty('--border-color', '#444466');
+        if (!crashed && gameRunning) multiplierEl.classList.add('glowing-normal');
+        else if (crashed) multiplierEl.classList.add('glowing-crash');
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      ambientSound.muted = !soundEnabled;
+      planeSound.muted = !soundEnabled;
+      crashSound.muted = !soundEnabled;
+      cashoutSound.muted = !soundEnabled;
+      document.getElementById('soundToggle').innerText = soundEnabled ? "Sound Off" : "Sound On";
+      if (soundEnabled && !ambientSound.D) { // Check if ambient sound is playing
+          ambientSound.play().catch(e => console.log("Ambient sound play failed:", e));
+      } else if (!soundEnabled) {
+          ambientSound.pause();
+      }
+    }
+
+
+    function rechargeWallet() {
+      wallet += 1000;
+      updateWalletDisplay();
+      resultEl.innerText = "Wallet recharged by ₹1000!";
+      setTimeout(() => resultEl.innerText = "Place your bet and watch the multiplier fly!", 2000);
+    }
+
+    function generateCrashPoint() {
+      // More controlled randomness, less extreme early crashes in normal mode
+      const mode = gameModeSelect.value;
+      let r = Math.random();
+      if (mode === "insane") {
+        // Higher chance of big multipliers, but also quick crashes
+        if (r < 0.1) return (1.01 + Math.random() * 0.5).toFixed(2); // 10% chance of very quick crash
+        return (1.5 + Math.random() * Math.random() * 50).toFixed(2); // Skewed towards higher values
+      } else { // Normal mode
+        if (r < 0.05) return (1.01 + Math.random() * 0.2).toFixed(2); // 5% chance of very quick crash
+        if (r < 0.5) return (1.1 + Math.random() * 2).toFixed(2); // 45% chance of 1.1x to 3.1x
+        return (2.0 + Math.random() * Math.random() * 10).toFixed(2); // Skewed towards 2x-5x, can go higher
+      }
+    }
+
+    function updateWalletDisplay() {
+      walletEl.innerText = wallet.toFixed(2);
+    }
+
+    // --- SOUND CONTROL ---
+    function playSound(sound) {
+        if (soundEnabled) {
+            sound.currentTime = 0;
+            sound.play().catch(e => console.warn(`Sound play failed for ${sound.id}:`, e));
+        }
+    }
+    function stopSound(sound) {
+        sound.pause();
+        sound.currentTime = 0;
+    }
+
+    // --- CANVAS DRAWING ---
+    function drawRadiatingBackground() {
+        ctx.save();
+        ctx.translate(radiatingLines.centerX, radiatingLines.centerY);
+        for (let i = 0; i < radiatingLines.numLines; i++) {
+            const angle = -Math.PI / 2 - (Math.PI * 0.4) + radiatingLines.angleStep * i + (Math.sin(Date.now() * 0.0001 * i) * 0.01) ; // Dynamic movement
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(angle) * radiatingLines.maxRadius, Math.sin(angle) * radiatingLines.maxRadius);
+            ctx.strokeStyle = radiatingLines.lineColor;
+            ctx.lineWidth = radiatingLines.lineWidth + Math.sin(Date.now() * 0.0005 + i) * 0.5; // Pulsating width
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    function drawPlane() {
+        ctx.fillStyle = "#ffeb3b"; // Yellow plane
+        ctx.beginPath();
+        // A slightly more detailed plane shape
+        const bodyLen = plane.width * 0.8;
+        const wingWidth = plane.width;
+        const wingHt = plane.height * 0.3;
+        const tailHt = plane.height * 0.6;
+
+        ctx.moveTo(plane.x, plane.y - plane.height / 2); // Nose
+        ctx.lineTo(plane.x - bodyLen, plane.y - plane.height / 2); // Top fuselage
+        ctx.lineTo(plane.x - bodyLen - wingHt, plane.y - plane.height /2 - tailHt/2); // Tail top
+        ctx.lineTo(plane.x - bodyLen - wingHt, plane.y + plane.height/2 + tailHt/2); // Tail bottom
+        ctx.lineTo(plane.x - bodyLen, plane.y + plane.height / 2); // Bottom fuselage
+        ctx.closePath();
+        ctx.fill();
+
+        // Wings
+        ctx.beginPath();
+        ctx.moveTo(plane.x - bodyLen * 0.3, plane.y - plane.height / 2);
+        ctx.lineTo(plane.x - bodyLen * 0.6, plane.y - plane.height / 2 - wingWidth * 0.2);
+        ctx.lineTo(plane.x - bodyLen * 0.7, plane.y - plane.height / 2 - wingWidth*0.15);
+        ctx.lineTo(plane.x - bodyLen * 0.4, plane.y - plane.height/2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(plane.x - bodyLen * 0.3, plane.y + plane.height / 2);
+        ctx.lineTo(plane.x - bodyLen * 0.6, plane.y + plane.height / 2 + wingWidth * 0.2);
+        ctx.lineTo(plane.x - bodyLen * 0.7, plane.y + plane.height / 2 + wingWidth*0.15);
+        ctx.lineTo(plane.x - bodyLen * 0.4, plane.y + plane.height/2);
+        ctx.fill();
+    }
+
+    function drawPath() {
+        if (pathPoints.length < 2) return;
+        ctx.beginPath();
+        ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
+        for (let i = 1; i < pathPoints.length; i++) {
+            ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
+        }
+        ctx.strokeStyle = "rgba(255, 51, 102, 0.7)"; // Reddish path
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Optional: Fill below the path
+        ctx.lineTo(pathPoints[pathPoints.length - 1].x, canvas.height);
+        ctx.lineTo(pathPoints[0].x, canvas.height);
+        ctx.closePath();
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, "rgba(255, 51, 102, 0.3)");
+        gradient.addColorStop(1, "rgba(255, 51, 102, 0.05)");
+        ctx.fillStyle = gradient;
+        ctx.fill();
+    }
+
+    function updateCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+      drawRadiatingBackground();
+      if (gameRunning || crashed || cashedOut) { // Draw path if game has started
+          drawPath();
+          drawPlane();
+      }
+    }
+
+    // --- GAME LOGIC ---
+    function cashOutOrBet() {
+        if (!gameRunning) { // If game is not running, this button is for "BET"
+            startGame();
+        } else { // If game is running, this button is for "CASH OUT"
+            manualCashOut();
+        }
+    }
+
+
+    function startGame() {
+      currentBet = parseInt(betInput.value);
+      if (isNaN(currentBet) || currentBet <= 0) {
+        resultEl.innerText = "Please enter a valid bet amount.";
+        return;
+      }
+      if (wallet < currentBet) {
+        resultEl.innerText = "Not enough balance to place this bet!";
+        return;
+      }
+
+      wallet -= currentBet;
+      updateWalletDisplay();
+
+      currentMultiplier = 1.00;
+      growthRate = 0.0015 + Math.random() * 0.001; // Randomized initial growth
+      acceleration = 0.0001 + Math.random() * 0.0001; // Randomized acceleration
+      crashed = false;
+      cashedOut = false;
+      time = 0;
+      pathPoints = [{ x: plane.x + plane.width / 2, y: plane.y }]; // Start path from plane's initial pos
+      gameRunning = true;
+
+      autoCashoutValue = parseFloat(autoCashoutInput.value);
+      if (isNaN(autoCashoutValue) || autoCashoutValue < 1.01) {
+        autoCashoutValue = null;
+      }
+
+      crashPoint = parseFloat(generateCrashPoint());
+
+      multiplierEl.innerText = "1.00x";
+      multiplierEl.classList.remove('glowing-crash');
+      multiplierEl.classList.add('glowing-normal');
+      resultEl.innerText = "Game in progress... Good luck!";
+
+      cashoutBtn.innerText = "CASH OUT";
+      cashoutBtn.disabled = false;
+      restartBtn.style.display = "none";
+      betInput.disabled = true;
+      autoCashoutInput.disabled = true;
+      gameModeSelect.disabled = true;
+
+      playSound(planeSound);
+      planeSound.loop = true;
+      if(soundEnabled && ambientSound.paused) playSound(ambientSound);
+
+
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+      gameLoop();
+    }
+
+    function gameLoop() {
+      if (!gameRunning) return;
+
+      time += 1;
+      growthRate += acceleration;
+      currentMultiplier += growthRate * (currentMultiplier < 5 ? 1 : 0.8); // Slower growth at higher multipliers
+      currentMultiplier = parseFloat(currentMultiplier.toFixed(2));
+
+      multiplierEl.innerText = currentMultiplier.toFixed(2) + "x";
+
+      // Plane movement logic - more dynamic
+      plane.x += 1.5 + currentMultiplier * 0.05; // Plane accelerates slightly with multiplier
+      const verticalMovementFactor = canvas.height * 0.3; // Max vertical movement
+      plane.y = canvas.height - 50 - Math.sin(time * 0.02 + currentMultiplier * 0.1) * (verticalMovementFactor * Math.min(1, currentMultiplier / 20));
+      plane.y = Math.max(plane.height, Math.min(canvas.height - plane.height, plane.y)); // Keep plane within bounds
+
+
+      // Add current point to path
+      if (plane.x <= canvas.width + plane.width) { // Only add points if plane is somewhat visible or approaching
+        pathPoints.push({ x: plane.x + plane.width / 2, y: plane.y });
+        if (pathPoints.length > maxPathPoints) {
+            pathPoints.shift(); // Keep path array from growing indefinitely
+        }
+      }
+
+
+      updateCanvas(); // Update all drawings
+
+      // Auto Cashout Check
+      if (!cashedOut && autoCashoutValue && currentMultiplier >= autoCashoutValue) {
+        performCashOut(true); // true for auto
+        r
