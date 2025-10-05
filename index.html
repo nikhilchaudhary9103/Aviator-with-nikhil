@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Aviator Cosmic Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --text-color: #fff;
+      --wallet-color: #00ffcc;
+      --accent-color: #00ffff;
+      --shadow-color: #000;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      color: var(--text-color);
+      overflow: hidden;
+      user-select: none;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* 🔥 Background video setup */
+    video#bgVideo {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      z-index: -2;
+      filter: brightness(0.25) contrast(1.3) saturate(1.5) blur(1px);
+    }
+
+    /* 💡 Electric overlay */
+    .electric-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: radial-gradient(circle at 20% 20%, rgba(0,255,255,0.15), transparent 70%),
+                  radial-gradient(circle at 80% 80%, rgba(255,0,255,0.1), transparent 70%);
+      mix-blend-mode: screen;
+      pointer-events: none;
+      animation: electricPulse 6s infinite alternate ease-in-out;
+    }
+
+    @keyframes electricPulse {
+      0% { opacity: 0.3; filter: hue-rotate(0deg); }
+      100% { opacity: 0.7; filter: hue-rotate(60deg); }
+    }
+
+    /* 🌌 Glassmorphism UI */
+    .topbar, .controls {
+      backdrop-filter: blur(20px) saturate(180%);
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      box-shadow: 0 0 25px rgba(0, 255, 255, 0.1);
+    }
+
+    .topbar {
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+    }
+
+    .wallet {
+      font-size: 1.2em;
+      color: var(--wallet-color);
+      font-weight: bold;
+    }
+
+    .controls {
+      text-align: center;
+      padding: 20px;
+      margin: 20px;
+    }
+
+    .controls input, .controls select, .controls button {
+      padding: 10px 12px;
+      margin: 8px;
+      border-radius: 6px;
+      font-size: 1em;
+      border: 1px solid #00ffff44;
+      background-color: rgba(0,0,0,0.5);
+      color: #fff;
+      transition: 0.3s;
+    }
+
+    .controls input:focus, .controls select:focus {
+      border-color: var(--accent-color);
+      outline: none;
+      box-shadow: 0 0 10px var(--accent-color);
+    }
+
+    #multiplier {
+      font-size: 5em;
+      text-align: center;
+      margin: 20px 0;
+      text-shadow: 0 0 15px var(--accent-color);
+      color: var(--accent-color);
+      transition: transform 0.2s;
+    }
+
+    #gameCanvas {
+      display: block;
+      margin: 20px auto;
+      border-radius: 15px;
+      background: rgba(0,0,0,0.6);
+      box-shadow: 0 0 40px var(--accent-color), inset 0 0 30px rgba(0,255,255,0.2);
+    }
+
+    #cashoutBtn, #restartBtn {
+      padding: 12px 20px;
+      border: none;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    #cashoutBtn {
+      background: linear-gradient(45deg, #00ff88, #0077ff);
+      color: #fff;
+      box-shadow: 0 0 15px #00ffffaa;
+    }
+
+    #cashoutBtn:hover { transform: scale(1.05); }
+
+    #restartBtn {
+      background: linear-gradient(45deg, #ffcc00, #ff6600);
+      color: #000;
+      display: none;
+    }
+
+    #result, #historyPanel {
+      text-align: center;
+      font-size: 1.1em;
+      margin-top: 15px;
+      color: #fff;
+      text-shadow: 0 0 8px #00ffff88;
+    }
+  </style>
+</head>
+<body>
+
+  <video id="bgVideo" autoplay muted loop playsinline>
+    <source src="video.mp4" type="video/mp4">
+  </video>
+
+  <div class="electric-overlay"></div>
+
+  <div class="topbar">
+    <div><strong>Aviator Cosmic Pro ⚡</strong></div>
+    <div class="wallet">Wallet: ₹<span id="walletAmount">5000</span></div>
+  </div>
+
+  <div class="controls">
+    <input type="number" id="betAmount" placeholder="Enter Bet ₹" min="10" max="10000" value="100">
+    <input type="number" id="autoCashout" placeholder="Auto Cashout x" step="0.1" min="1.1">
+    <select id="gameMode">
+      <option value="normal">Normal</option>
+      <option value="insane">Insane</option>
+    </select>
+    <button onclick="rechargeWallet()">Recharge ₹1000</button>
+  </div>
+
+  <div id="multiplier">1.00x</div>
+  <div style="text-align:center;">
+    <button id="cashoutBtn" onclick="cashOut()">Cash Out</button>
+    <button id="restartBtn" onclick="restartGame()">Restart</button>
+  </div>
+
+  <div id="result"></div>
+  <div id="historyPanel">Past Crashes: <span id="history"></span></div>
+  <canvas id="gameCanvas" width="600" height="350"></canvas>
+
+  <audio id="planeSound" src="plane.mp3"></audio>
+  <audio id="crashSound" src="boom.mp3"></audio>
+  <audio id="cashoutSound" src="cashout.mp3"></audio>
+  <audio id="ambientSound" src="ambient.mp3" autoplay loop></audio>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const multiplierEl = document.getElementById("multiplier");
+    const resultEl = document.getElementById("result");
+    const walletEl = document.getElementById("walletAmount");
+    const cashoutBtn = document.getElementById("cashoutBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const historyEl = document.getElementById("history");
+    const planeSound = document.getElementById("planeSound");
+    const crashSound = document.getElementById("crashSound");
+    const cashoutSound = document.getElementById("cashoutSound");
+    const ambientSound = document.getElementById("ambientSound");
+    const betInput = document.getElementById("betAmount");
+    const autoCashoutInput = document.getElementById("autoCashout");
+    const gameModeSelect = document.getElementById("gameMode");
+
+    let multiplier = 1.00, growthRate = 0.002, acceleration = 0.0002, cashedOut = false, crashed = false;
+    let crashPoint = 0, gameRunning = false, animationFrame;
+    let wallet = 5000, winnings = 0, autoCashoutValue = null;
+    let planeX = -50, planeY = canvas.height / 2, waveAngle = 0;
+    let history = [];
+
+    function rechargeWallet() {
+      wallet += 1000;
+      updateWallet();
+      alert("Wallet recharged ₹1000!");
+    }
+
+    function generateCrashPoint() {
+      return gameModeSelect.value === "insane"
+        ? (Math.random() * 30 + 0.5).toFixed(2)
+        : (Math.random() * 5 + 1.5).toFixed(2);
+    }
+
+    function updateWallet() {
+      walletEl.innerText = wallet;
+    }
+
+    const stars = Array.from({ length: 150 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 2,
+      speed: 0.5 + Math.random()
+    }));
+
+    function drawStars() {
+      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      stars.forEach(star => {
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, 2 * Math.PI);
+        ctx.fill();
+        star.x -= star.speed;
+        if (star.x < 0) {
+          star.x = canvas.width;
+          star.y = Math.random() * canvas.height;
+        }
+      });
+    }
+
+    function drawPlane(x, y) {
+      ctx.fillStyle = "#00ffff";
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - 30, y + 15);
+      ctx.lineTo(x - 30, y - 15);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowColor = "#00ffff";
+      ctx.shadowBlur = 20;
+    }
+
+    function updateCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawStars();
+      drawPlane(planeX, planeY);
+    }
+
+    function updateGame() {
+      if (!gameRunning) return;
+      growthRate += acceleration;
+      multiplier += growthRate;
+      multiplier = parseFloat(multiplier.toFixed(2));
+      multiplierEl.innerText = multiplier + "x";
+      multiplierEl.style.transform = `scale(${1 + Math.sin(multiplier/5)/10})`;
+
+      planeX += 2 + growthRate * 10;
+      waveAngle += 0.1;
+      planeY = canvas.height / 2 + Math.sin(waveAngle) * 20;
+
+      updateCanvas();
+      if (!cashedOut && autoCashoutValue && multiplier >= autoCashoutValue) cashOut(true);
+      if (multiplier >= crashPoint) return crash();
+      animationFrame = requestAnimationFrame(updateGame);
+    }
+
+    function startGame() {
+      let bet = parseInt(betInput.value) || 100;
+      if (wallet < bet) return alert("Not enough balance!");
+
+      multiplier = 1.00; growthRate = 0.002; acceleration = 0.0002;
+      crashed = false; cashedOut = false; winnings = 0;
+      planeX = -50; planeY = canvas.height / 2; waveAngle = 0;
+      gameRunning = true;
+
+      autoCashoutValue = parseFloat(autoCashoutInput.value) || null;
+      crashPoint = parseFloat(generateCrashPoint());
+      multiplierEl.innerText = "1.00x"; resultEl.innerText = "";
+      cashoutBtn.disabled = false; restartBtn.style.display = "none";
+
+      wallet -= bet; updateWallet();
+      planeSound.currentTime = 0; planeSound.loop = true; planeSound.play();
+      animationFrame = requestAnimationFrame(updateGame);
+    }
+
+    function crash() {
+      crashed = true; gameRunning = false; cancelAnimationFrame(animationFrame);
+      planeSound.pause(); crashSound.play();
+      resultEl.innerText = `💥 Crashed at ${multiplier.toFixed(2)}x! You lost ₹${betInput.value}`;
+      cashoutBtn.disabled = true; restartBtn.style.display = "block";
+      history.unshift(multiplier.toFixed(2)); if (history.length > 5) history.pop();
+      historyEl.innerText = history.join(" | ");
+    }
+
+    function cashOut(auto = false) {
+      if (!gameRunning || cashedOut) return;
+      cashedOut = true; gameRunning = false; cancelAnimationFrame(animationFrame);
+      planeSound.pause(); cashoutSound.play();
+      const win = Math.floor(parseInt(betInput.value) * multiplier);
+      wallet += win; updateWallet();
+      resultEl.innerText = `${auto ? "Auto-" : ""}Cashed out at ${multiplier.toFixed(2)}x, Won ₹${win}`;
+      cashoutBtn.disabled = true; restartBtn.style.display = "block";
+      history.unshift(multiplier.toFixed(2)); if (history.length > 5) history.pop();
+      historyEl.innerText = history.join(" | ");
+    }
+
+    function restartGame() { startGame(); }
+
+    window.onload = () => {
+      ambientSound.volume = 0.3;
+      startGame();
+    };
+  </script>
+</body>
+  </html>
